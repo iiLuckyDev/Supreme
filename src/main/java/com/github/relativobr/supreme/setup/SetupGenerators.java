@@ -103,23 +103,23 @@ public class SetupGenerators {
 
     new EnergyCapacitor(ItemGroups.ELECTRIC_CATEGORY, SupremeCapacitor.AURUM_CAPACITOR,
         SupremeCapacitor.MACHINE_AURUM_CAPACITOR,
-        getValueGeneratorsWithLimit(Supreme.getSupremePowerSection().getCapacitorAurumCapacity())).register(sup);
+        Supreme.getSupremePowerSection().getCapacitorAurumCapacity()).register(sup);
 
     new EnergyCapacitor(ItemGroups.ELECTRIC_CATEGORY, SupremeCapacitor.TITANIUM_CAPACITOR,
         SupremeCapacitor.MACHINE_TITANIUM_CAPACITOR,
-        getValueGeneratorsWithLimit(Supreme.getSupremePowerSection().getCapacitorTitaniumCapacity())).register(sup);
+        Supreme.getSupremePowerSection().getCapacitorTitaniumCapacity()).register(sup);
 
     new EnergyCapacitor(ItemGroups.ELECTRIC_CATEGORY, SupremeCapacitor.ADAMANTIUM_CAPACITOR,
         SupremeCapacitor.MACHINE_ADAMANTIUM_CAPACITOR,
-        getValueGeneratorsWithLimit(Supreme.getSupremePowerSection().getCapacitorAdamantiumCapacity())).register(sup);
+        Supreme.getSupremePowerSection().getCapacitorAdamantiumCapacity()).register(sup);
 
     new EnergyCapacitor(ItemGroups.ELECTRIC_CATEGORY, SupremeCapacitor.THORNIUM_CAPACITOR,
         SupremeCapacitor.MACHINE_THORNIUM_CAPACITOR,
-        getValueGeneratorsWithLimit(Supreme.getSupremePowerSection().getCapacitorThorniumCapacity())).register(sup);
+        Supreme.getSupremePowerSection().getCapacitorThorniumCapacity()).register(sup);
 
     new EnergyCapacitor(ItemGroups.ELECTRIC_CATEGORY, SupremeCapacitor.SUPREME_CAPACITOR,
         SupremeCapacitor.MACHINE_SUPREME_CAPACITOR,
-        getValueGeneratorsWithLimit(Supreme.getSupremePowerSection().getCapacitorSupremeCapacity())).register(sup);
+        Supreme.getSupremePowerSection().getCapacitorSupremeCapacity()).register(sup);
 
   }
 }

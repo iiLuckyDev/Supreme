@@ -19,6 +19,7 @@ public class SupremeOptions {
     String lang;
     int customTickerDelay;
     boolean enableGenerators;
+    boolean debugGenerators;
     boolean limitProductionGenerators;
     int delayTimeValidGenerators;
     int baseTimeVirtualGarden;
@@ -47,6 +48,7 @@ public class SupremeOptions {
                 .lang("en-US")
                 .customTickerDelay(2)
                 .enableGenerators(true)
+                .debugGenerators(false)
                 .limitProductionGenerators(false)
                 .delayTimeValidGenerators(600)
                 .enableQuarry(true)

@@ -7,6 +7,7 @@ options:
   lang: en-US
   custom-ticker-delay: 2
   enable-generators: true
+  debug-generators: false
   limit-production-generators: false
   delay-time-valid-generators: 600
   base-time-virtual-garden: 15

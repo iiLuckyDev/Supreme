@@ -13,6 +13,7 @@ import com.github.relativobr.supreme.util.SupremePowerSection;
 import io.github.thebusybiscuit.slimefun4.api.SlimefunAddon;
 import io.github.thebusybiscuit.slimefun4.libraries.dough.config.Config;
 import io.github.thebusybiscuit.slimefun4.libraries.dough.updater.BlobBuildUpdater;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -44,6 +45,7 @@ public class Supreme extends JavaPlugin implements SlimefunAddon {
                 .lang(typeSection.getString("lang", "en-US"))
                 .customTickerDelay(typeSection.getInt("custom-ticker-delay", 2))
                 .enableGenerators(typeSection.getBoolean("enable-generators", true))
+                .debugGenerators(typeSection.getBoolean("debug-generators", false))
                 .limitProductionGenerators(typeSection.getBoolean("limit-production-generators", false))
                 .delayTimeValidGenerators(typeSection.getInt("delay-time-valid-generators", 600))
                 .enableQuarry(typeSection.getBoolean("enable-quarry", true))
@@ -77,35 +79,35 @@ public class Supreme extends JavaPlugin implements SlimefunAddon {
         supremePowerSection = SupremePowerSection.defaultValue();
       } else {
         supremePowerSection = SupremePowerSection.builder()
-                .capacitorAurumCapacity(typeSection.getInt("capacitor-aurum-capacity", 1000000))
-                .capacitorTitaniumCapacity(typeSection.getInt("capacitor-titanium-capacity", 4000000))
-                .capacitorAdamantiumCapacity(typeSection.getInt("capacitor-adamantium-capacity", 16000))
-                .capacitorThorniumCapacity(typeSection.getInt("capacitor-thornium-capacity", 1000000))
-                .capacitorSupremeCapacity(typeSection.getInt("capacitor-supreme-capacity", 16000000))
-                .generatorBasicIgnisEnergy(typeSection.getInt("generator-basic-ignis-energy", 2500))
-                .generatorBasicIgnisBuffer(typeSection.getInt("generator-basic-ignis-buffer", 5000))
-                .generatorBasicVentusEnergy(typeSection.getInt("generator-basic-ventus-energy", 2500))
-                .generatorBasicVentusBuffer(typeSection.getInt("generator-basic-ventus-buffer", 5000))
-                .generatorBasicAquaEnergy(typeSection.getInt("generator-basic-aqua-energy", 2500))
-                .generatorBasicAquaBuffer(typeSection.getInt("generator-basic-aqua-buffer", 5000))
-                .generatorBasicLuxEnergy(typeSection.getInt("generator-basic-lux-energy", 2500))
-                .generatorBasicLuxBuffer(typeSection.getInt("generator-basic-lux-buffer", 5000))
-                .generatorBasicLumiumEnergy(typeSection.getInt("generator-basic-lumium-energy", 5000))
-                .generatorBasicLumiumBuffer(typeSection.getInt("generator-basic-lumium-buffer", 10000))
-                .generatorIgnisEnergy(typeSection.getInt("generator-ignis-energy", 25000))
-                .generatorIgnisBuffer(typeSection.getInt("generator-ignis-buffer", 50000))
-                .generatorVentusEnergy(typeSection.getInt("generator-ventus-energy", 25000))
-                .generatorVentusBuffer(typeSection.getInt("generator-ventus-buffer", 50000))
-                .generatorAquaEnergy(typeSection.getInt("generator-aqua-energy", 25000))
-                .generatorAquaBuffer(typeSection.getInt("generator-aqua-buffer", 50000))
-                .generatorLuxEnergy(typeSection.getInt("generator-lux-energy", 25000))
-                .generatorLuxBuffer(typeSection.getInt("generator-lux-buffer", 50000))
-                .generatorLumiumEnergy(typeSection.getInt("generator-lumium-energy", 75000))
-                .generatorLumiumBuffer(typeSection.getInt("generator-lumium-buffer", 500000))
-                .generatorThorniumEnergy(typeSection.getInt("generator-thornium-energy", 1000000))
-                .generatorThorniumBuffer(typeSection.getInt("generator-thornium-buffer", 6000000))
-                .generatorSupremeEnergy(typeSection.getInt("generator-supreme-energy", 2000000))
-                .generatorSupremeBuffer(typeSection.getInt("generator-supreme-buffer", 12000000))
+                .capacitorAurumCapacity(getClampedEnergyValue(typeSection, "capacitor-aurum-capacity", 1000000))
+                .capacitorTitaniumCapacity(getClampedEnergyValue(typeSection, "capacitor-titanium-capacity", 4000000))
+                .capacitorAdamantiumCapacity(getClampedEnergyValue(typeSection, "capacitor-adamantium-capacity", 16000000))
+                .capacitorThorniumCapacity(getClampedEnergyValue(typeSection, "capacitor-thornium-capacity", 100000000))
+                .capacitorSupremeCapacity(getClampedEnergyValue(typeSection, "capacitor-supreme-capacity", 1600000000))
+                .generatorBasicIgnisEnergy(getClampedEnergyValue(typeSection, "generator-basic-ignis-energy", 2500))
+                .generatorBasicIgnisBuffer(getClampedEnergyValue(typeSection, "generator-basic-ignis-buffer", 5000))
+                .generatorBasicVentusEnergy(getClampedEnergyValue(typeSection, "generator-basic-ventus-energy", 2500))
+                .generatorBasicVentusBuffer(getClampedEnergyValue(typeSection, "generator-basic-ventus-buffer", 5000))
+                .generatorBasicAquaEnergy(getClampedEnergyValue(typeSection, "generator-basic-aqua-energy", 2500))
+                .generatorBasicAquaBuffer(getClampedEnergyValue(typeSection, "generator-basic-aqua-buffer", 5000))
+                .generatorBasicLuxEnergy(getClampedEnergyValue(typeSection, "generator-basic-lux-energy", 2500))
+                .generatorBasicLuxBuffer(getClampedEnergyValue(typeSection, "generator-basic-lux-buffer", 5000))
+                .generatorBasicLumiumEnergy(getClampedEnergyValue(typeSection, "generator-basic-lumium-energy", 5000))
+                .generatorBasicLumiumBuffer(getClampedEnergyValue(typeSection, "generator-basic-lumium-buffer", 10000))
+                .generatorIgnisEnergy(getClampedEnergyValue(typeSection, "generator-ignis-energy", 25000))
+                .generatorIgnisBuffer(getClampedEnergyValue(typeSection, "generator-ignis-buffer", 50000))
+                .generatorVentusEnergy(getClampedEnergyValue(typeSection, "generator-ventus-energy", 25000))
+                .generatorVentusBuffer(getClampedEnergyValue(typeSection, "generator-ventus-buffer", 50000))
+                .generatorAquaEnergy(getClampedEnergyValue(typeSection, "generator-aqua-energy", 25000))
+                .generatorAquaBuffer(getClampedEnergyValue(typeSection, "generator-aqua-buffer", 50000))
+                .generatorLuxEnergy(getClampedEnergyValue(typeSection, "generator-lux-energy", 25000))
+                .generatorLuxBuffer(getClampedEnergyValue(typeSection, "generator-lux-buffer", 50000))
+                .generatorLumiumEnergy(getClampedEnergyValue(typeSection, "generator-lumium-energy", 75000))
+                .generatorLumiumBuffer(getClampedEnergyValue(typeSection, "generator-lumium-buffer", 500000))
+                .generatorThorniumEnergy(getClampedEnergyValue(typeSection, "generator-thornium-energy", 1000000))
+                .generatorThorniumBuffer(getClampedEnergyValue(typeSection, "generator-thornium-buffer", 6000000))
+                .generatorSupremeEnergy(getClampedEnergyValue(typeSection, "generator-supreme-energy", 2000000))
+                .generatorSupremeBuffer(getClampedEnergyValue(typeSection, "generator-supreme-buffer", 12000000))
                 .build();
       }
     }
@@ -159,6 +161,7 @@ public class Supreme extends JavaPlugin implements SlimefunAddon {
     // localization
     Supreme.inst().log(Level.INFO, "Loaded language Supreme: " + getSupremeOptions().getLang());
     getLocalization();
+    logGeneratorDebugConfig();
 
     // check Compatibily Legacy (SupremeExpansion)
     if (getSupremeOptions().isUseLegacySupremeexpansionItemId()) {
@@ -189,6 +192,40 @@ public class Supreme extends JavaPlugin implements SlimefunAddon {
 
   public final void log(Level level, String messages) {
     getLogger().log(level, messages);
+  }
+
+  private void logGeneratorDebugConfig() {
+    if (!getSupremeOptions().isDebugGenerators()) {
+      return;
+    }
+
+    File configFile = new File(getDataFolder(), "config.yml");
+    SupremePowerSection powerSection = getSupremePowerSection();
+
+    log(Level.INFO, "[GeneratorDebug] configFile=" + configFile.getAbsolutePath());
+    log(Level.INFO,
+        "[GeneratorDebug] loadedConfig"
+            + " supremeEnergy=" + powerSection.getGeneratorSupremeEnergy()
+            + " supremeBuffer=" + powerSection.getGeneratorSupremeBuffer()
+            + " lumiumEnergy=" + powerSection.getGeneratorLumiumEnergy()
+            + " lumiumBuffer=" + powerSection.getGeneratorLumiumBuffer());
+  }
+
+  private static int getClampedEnergyValue(ConfigurationSection section, String path, int defaultValue) {
+    long value = section.getLong(path, defaultValue);
+
+    if (value < 0) {
+      inst().log(Level.WARNING, "Config value \"" + path + "\" was negative (" + value + "), using 0 instead.");
+      return 0;
+    }
+
+    if (value > Integer.MAX_VALUE) {
+      inst().log(Level.WARNING,
+          "Config value \"" + path + "\" was too large (" + value + "), clamping to " + Integer.MAX_VALUE + ".");
+      return Integer.MAX_VALUE;
+    }
+
+    return (int) value;
   }
 
 }

@@ -41,9 +41,9 @@
         </dependency>
 
         <dependency>
-            <groupId>com.github.Slimefun</groupId>
-            <artifactId>Slimefun4</artifactId>
-            <version>1.21-Experimental</version>
+            <groupId>local.slimefun5</groupId>
+            <artifactId>Slimefun5</artifactId>
+            <version>5.0.3-local</version>
             <scope>provided</scope>
         </dependency>
 
