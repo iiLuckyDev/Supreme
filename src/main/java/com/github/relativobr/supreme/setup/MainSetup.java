@@ -38,5 +38,7 @@ public class MainSetup {
       SetupSupremeQuarry.setup(sup);
     }
 
+    SetupResearches.setup(sup);
+
   }
 }
