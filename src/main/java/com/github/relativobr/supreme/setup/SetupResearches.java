@@ -114,15 +114,14 @@ public final class SetupResearches {
         "Bio Automation", 36,
         item -> hasAnyIdToken(item, "SUPREME_TECH_", "SUPREME_MOB_TECH_"));
 
-    registerResearch(supreme, supremeItems, assigned, "field_tools", BASE_RESEARCH_ID + 16,
-        "Field Tools", 18,
-        item -> inAnyGroup(item, ItemGroups.TOOLS_CATEGORY, ItemGroups.ARMOR_CATEGORY, ItemGroups.WEAPONS_CATEGORY)
-            && !hasAnyIdToken(item, "MAGIC", "RARE", "EPIC", "LEGENDARY", "_SUPREME"));
+    registerGearTierResearches(supreme, supremeItems, assigned, ItemGroups.ARMOR_CATEGORY,
+        "armor", "Armor", BASE_RESEARCH_ID + 16, new int[] {18, 22, 26, 30, 36, 42});
 
-    registerResearch(supreme, supremeItems, assigned, "thornium_masterworks", BASE_RESEARCH_ID + 17,
-        "Thornium Masterworks", 34,
-        item -> inAnyGroup(item, ItemGroups.TOOLS_CATEGORY, ItemGroups.ARMOR_CATEGORY, ItemGroups.WEAPONS_CATEGORY)
-            && hasAnyIdToken(item, "MAGIC", "RARE", "EPIC", "LEGENDARY", "_SUPREME"));
+    registerGearTierResearches(supreme, supremeItems, assigned, ItemGroups.TOOLS_CATEGORY,
+        "tools", "Tools", BASE_RESEARCH_ID + 22, new int[] {18, 22, 26, 30, 36, 42});
+
+    registerGearTierResearches(supreme, supremeItems, assigned, ItemGroups.WEAPONS_CATEGORY,
+        "weapons", "Weapons", BASE_RESEARCH_ID + 28, new int[] {20, 24, 28, 32, 38, 44});
 
     List<SlimefunItem> unassigned = supremeItems.stream()
         .filter(item -> !assigned.contains(item.getId()))
@@ -130,7 +129,7 @@ public final class SetupResearches {
 
     if (!unassigned.isEmpty()) {
       Research research = new Research(new NamespacedKey(supreme, "supreme_miscellany"),
-          BASE_RESEARCH_ID + 18, "Supreme Miscellany", 24);
+          BASE_RESEARCH_ID + 34, "Supreme Miscellany", 24);
       research.addItems(unassigned.toArray(new SlimefunItem[0]));
       research.register();
 
@@ -157,18 +156,36 @@ public final class SetupResearches {
     researchItems.stream().map(SlimefunItem::getId).forEach(assigned::add);
   }
 
-  private static boolean inGroup(SlimefunItem item, ItemGroup group) {
-    return item.getItemGroup() == group;
+  private static void registerGearTierResearches(Supreme supreme, List<SlimefunItem> items,
+      Set<String> assigned, ItemGroup group, String keyPrefix, String displayName, int baseResearchId,
+      int[] costs) {
+    registerResearch(supreme, items, assigned, keyPrefix + "_thornium", baseResearchId,
+        "Thornium " + displayName, costs[0],
+        item -> inGroup(item, group) && hasIdSuffix(item, "_THORNIUM"));
+
+    registerResearch(supreme, items, assigned, keyPrefix + "_magic", baseResearchId + 1,
+        "Magic " + displayName, costs[1],
+        item -> inGroup(item, group) && hasIdSuffix(item, "_MAGIC"));
+
+    registerResearch(supreme, items, assigned, keyPrefix + "_rare", baseResearchId + 2,
+        "Rare " + displayName, costs[2],
+        item -> inGroup(item, group) && hasIdSuffix(item, "_RARE"));
+
+    registerResearch(supreme, items, assigned, keyPrefix + "_epic", baseResearchId + 3,
+        "Epic " + displayName, costs[3],
+        item -> inGroup(item, group) && hasIdSuffix(item, "_EPIC"));
+
+    registerResearch(supreme, items, assigned, keyPrefix + "_legendary", baseResearchId + 4,
+        "Legendary " + displayName, costs[4],
+        item -> inGroup(item, group) && hasIdSuffix(item, "_LEGENDARY"));
+
+    registerResearch(supreme, items, assigned, keyPrefix + "_supreme", baseResearchId + 5,
+        "Supreme " + displayName, costs[5],
+        item -> inGroup(item, group) && hasIdSuffix(item, "_SUPREME"));
   }
 
-  private static boolean inAnyGroup(SlimefunItem item, ItemGroup... groups) {
-    for (ItemGroup group : groups) {
-      if (inGroup(item, group)) {
-        return true;
-      }
-    }
-
-    return false;
+  private static boolean inGroup(SlimefunItem item, ItemGroup group) {
+    return item.getItemGroup() == group;
   }
 
   private static boolean isId(SlimefunItem item, String id) {
@@ -184,6 +201,10 @@ public final class SetupResearches {
     }
 
     return false;
+  }
+
+  private static boolean hasIdSuffix(SlimefunItem item, String suffix) {
+    return item.getId().endsWith(suffix);
   }
 
   private static boolean hasAnyIdToken(SlimefunItem item, String... tokens) {

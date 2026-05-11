@@ -1,3 +1,9 @@
+# Supreme configuration
+# Config version: 2
+# When this version changes, Supreme backs up your old config to
+# plugins/Supreme/config-backups and replaces config.yml with the new default file.
+config-version: 2
+
 options:
   auto-update: true
   use-legacy-supremeexpansion-item-id: false
@@ -24,6 +30,7 @@ options:
   enable-tools: true
   enable-armor: true
   enable-tech: true
+  enable-researches: true
   custom-bc: false
 # -------------------------------
 # quarry-custom-output

@@ -38,7 +38,9 @@ public class MainSetup {
       SetupSupremeQuarry.setup(sup);
     }
 
-    SetupResearches.setup(sup);
+    if (supremeOptions.isEnableResearches()) {
+      SetupResearches.setup(sup);
+    }
 
   }
 }

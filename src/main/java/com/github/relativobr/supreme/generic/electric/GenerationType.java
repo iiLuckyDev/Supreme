@@ -8,6 +8,7 @@ import lombok.Getter;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 
 @AllArgsConstructor
 public enum GenerationType {
@@ -17,7 +18,7 @@ public enum GenerationType {
         protected int generate(@Nonnull World world, @Nonnull Block block, int def) {
             switch (world.getEnvironment()) {
                 case NORMAL: {
-                    if (block.getLocation().add(0, 1, 0).getBlock().getLightFromSky() == 15) {
+                    if (block.getRelative(BlockFace.UP).getLightFromSky() == 15) {
                         return def;
                     }
                     return 0;
@@ -32,7 +33,7 @@ public enum GenerationType {
     FIRE("Fire") {
         @Override
         protected int generate(@Nonnull World world, @Nonnull Block block, int def) {
-            Material material = block.getLocation().add(0, -1, 0).getBlock().getType();
+            Material material = block.getRelative(BlockFace.DOWN).getType();
             if (material == Material.FIRE
                     || material == Material.SOUL_FIRE
                     || material == Material.LAVA
@@ -46,7 +47,7 @@ public enum GenerationType {
     WATER("Water") {
         @Override
         protected int generate(@Nonnull World world, @Nonnull Block block, int def) {
-            Material material = block.getLocation().add(0, -1, 0).getBlock().getType();
+            Material material = block.getRelative(BlockFace.DOWN).getType();
             if (material == Material.WATER
                     || material == Material.WATER_CAULDRON) {
                 return def;
@@ -60,10 +61,10 @@ public enum GenerationType {
             switch (world.getEnvironment()) {
                 case NETHER:
                 case NORMAL: {
-                    if (block.getLocation().add(1, 0, 0).getBlock().getType() == Material.AIR
-                            || block.getLocation().add(-1, 0, 0).getBlock().getType() == Material.AIR
-                            || block.getLocation().add(0, 0, 1).getBlock().getType() == Material.AIR
-                            || block.getLocation().add(0, 0, -1).getBlock().getType() == Material.AIR) {
+                    if (block.getRelative(BlockFace.EAST).getType() == Material.AIR
+                            || block.getRelative(BlockFace.WEST).getType() == Material.AIR
+                            || block.getRelative(BlockFace.SOUTH).getType() == Material.AIR
+                            || block.getRelative(BlockFace.NORTH).getType() == Material.AIR) {
                         return def;
                     }
                     return 0;
@@ -82,7 +83,7 @@ public enum GenerationType {
                 case THE_END:
                     return def;
                 case NORMAL:
-                    if (block.getLocation().add(0, 1, 0).getBlock().getLightFromSky() != 15) {
+                    if (block.getRelative(BlockFace.UP).getLightFromSky() != 15) {
                         return def;
                     }
                     return 0;
@@ -102,5 +103,13 @@ public enum GenerationType {
     private final String toString;
 
     protected abstract int generate(@Nonnull World world, @Nonnull Block block, int def);
+
+    protected boolean usesValidationCache() {
+        return this == EVERY;
+    }
+
+    protected boolean usesNetworkBuffer() {
+        return this == EVERY;
+    }
 
 }

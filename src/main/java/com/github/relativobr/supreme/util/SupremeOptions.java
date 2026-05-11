@@ -36,6 +36,7 @@ public class SupremeOptions {
     boolean enableTools;
     boolean enableArmor;
     boolean enableTech;
+    boolean enableResearches;
     boolean enableItemConverter;
     List<String> itemConverterBlacklist;
     boolean customBc;
@@ -65,6 +66,7 @@ public class SupremeOptions {
                 .enableTools(true)
                 .enableArmor(true)
                 .enableTech(true)
+                .enableResearches(true)
                 .enableItemConverter(true)
                 .itemConverterBlacklist(Arrays.asList("SUPREME_ITEM_CONVERTER_MACHINE"))
                 .customBc(false)

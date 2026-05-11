@@ -14,13 +14,25 @@ import io.github.thebusybiscuit.slimefun4.api.SlimefunAddon;
 import io.github.thebusybiscuit.slimefun4.libraries.dough.config.Config;
 import io.github.thebusybiscuit.slimefun4.libraries.dough.updater.BlobBuildUpdater;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class Supreme extends JavaPlugin implements SlimefunAddon {
+
+  private static final int CONFIG_VERSION = 2;
+  private static final String CONFIG_FILE_NAME = "config.yml";
+  private static final String CONFIG_VERSION_PATH = "config-version";
+  private static final DateTimeFormatter CONFIG_BACKUP_FORMAT =
+      DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
 
   private static Supreme instance;
   private static SupremeOptions supremeOptions = null;
@@ -62,6 +74,7 @@ public class Supreme extends JavaPlugin implements SlimefunAddon {
                 .enableTools(typeSection.getBoolean("enable-tools", true))
                 .enableArmor(typeSection.getBoolean("enable-armor", true))
                 .enableTech(typeSection.getBoolean("enable-tech", true))
+                .enableResearches(typeSection.getBoolean("enable-researches", true))
                 .enableItemConverter(typeSection.getBoolean("enable-item-converter-machine", true))
                 .itemConverterBlacklist(typeSection.getStringList("item-converter-blacklist"))
                 .customBc(typeSection.getBoolean("custom-bc", false))
@@ -140,6 +153,19 @@ public class Supreme extends JavaPlugin implements SlimefunAddon {
   public void onEnable() {
 
     instance = this;
+    supremeOptions = null;
+    supremePowerSection = null;
+    localization = null;
+    legacyItem = null;
+
+    try {
+      ensureConfigUpToDate();
+    } catch (RuntimeException e) {
+      log(Level.SEVERE, "Could not update config.yml safely, Supreme will not enable.");
+      log(Level.SEVERE, e.getMessage());
+      getServer().getPluginManager().disablePlugin(this);
+      return;
+    }
 
     Supreme.inst().log(Level.INFO, "########################################");
     Supreme.inst().log(Level.INFO, "      Supreme - By RelativoBR      ");
@@ -177,6 +203,10 @@ public class Supreme extends JavaPlugin implements SlimefunAddon {
 
   @Override
   public void onDisable() {
+    supremeOptions = null;
+    supremePowerSection = null;
+    localization = null;
+    legacyItem = null;
     instance = null;
   }
 
@@ -226,6 +256,55 @@ public class Supreme extends JavaPlugin implements SlimefunAddon {
     }
 
     return (int) value;
+  }
+
+  private void ensureConfigUpToDate() {
+    if (!getDataFolder().exists() && !getDataFolder().mkdirs()) {
+      log(Level.WARNING, "Could not create plugin data folder at " + getDataFolder().getAbsolutePath());
+    }
+
+    File configFile = new File(getDataFolder(), CONFIG_FILE_NAME);
+    if (!configFile.exists()) {
+      saveResource(CONFIG_FILE_NAME, false);
+      reloadConfig();
+      log(Level.INFO, "Created default config.yml (version " + CONFIG_VERSION + ").");
+      return;
+    }
+
+    YamlConfiguration currentConfig = YamlConfiguration.loadConfiguration(configFile);
+    int currentVersion = currentConfig.getInt(CONFIG_VERSION_PATH, 0);
+
+    if (currentVersion == CONFIG_VERSION) {
+      reloadConfig();
+      log(Level.INFO, "Loaded config.yml version " + currentVersion + ".");
+      return;
+    }
+
+    File backupFile = backupConfig(configFile, currentVersion);
+    saveResource(CONFIG_FILE_NAME, true);
+    reloadConfig();
+
+    log(Level.INFO,
+        "Updated config.yml from version " + currentVersion + " to " + CONFIG_VERSION
+            + ". Backup saved to " + backupFile.getAbsolutePath());
+  }
+
+  private File backupConfig(File configFile, int currentVersion) {
+    File backupDirectory = new File(getDataFolder(), "config-backups");
+    if (!backupDirectory.exists() && !backupDirectory.mkdirs()) {
+      throw new IllegalStateException("Could not create config backup directory at " + backupDirectory.getAbsolutePath());
+    }
+
+    String versionLabel = currentVersion > 0 ? String.valueOf(currentVersion) : "legacy";
+    String timestamp = LocalDateTime.now().format(CONFIG_BACKUP_FORMAT);
+    File backupFile = new File(backupDirectory, "config-v" + versionLabel + "-" + timestamp + ".yml");
+
+    try {
+      Files.copy(configFile.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+      return backupFile;
+    } catch (IOException e) {
+      throw new IllegalStateException("Could not back up config.yml to " + backupFile.getAbsolutePath(), e);
+    }
   }
 
 }
