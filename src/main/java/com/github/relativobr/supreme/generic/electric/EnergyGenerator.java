@@ -148,14 +148,15 @@ public final class EnergyGenerator extends MenuBlock implements EnergyNetProvide
   public void setCharge(@Nonnull Location l, int charge) {
     boolean environmentActive = isEnvironmentActive(l);
     if (type != null && !type.usesNetworkBuffer()) {
-      if (distributeEnvironmentalCharge(l, charge)) {
+      if (queueEnvironmentalCharge(l, charge)) {
         return;
       }
 
       if (!environmentActive) {
-        int currentCharge = getRawStoredCharge(BlockStorage.getLocationInfo(l));
+        Config latestData = BlockStorage.getLocationInfo(l);
+        int currentCharge = getRawStoredCharge(latestData);
         logIgnoredChargeUpdate(l, charge, currentCharge);
-        updateMenu(l, BlockStorage.getLocationInfo(l), getStoredValue(BlockStorage.getLocationInfo(l), GENERATION_KEY));
+        updateMenu(l, latestData, getStoredValue(latestData, GENERATION_KEY));
         return;
       }
     }
@@ -171,12 +172,25 @@ public final class EnergyGenerator extends MenuBlock implements EnergyNetProvide
 
   @Override
   protected void onNewInstance(BlockMenu menu, Block b) {
-    updateMenu(b.getLocation(), BlockStorage.getLocationInfo(b.getLocation()),
-        getStoredValue(BlockStorage.getLocationInfo(b.getLocation()), GENERATION_KEY));
+    Config data = BlockStorage.getLocationInfo(b.getLocation());
+    updateMenu(menu, b.getLocation(), getStoredValue(data, GENERATION_KEY));
   }
 
   private void updateMenu(Location location, Config data, int generated) {
+    BlockStorage storage = BlockStorage.getStorage(location.getWorld());
+    if (storage == null || !storage.hasInventory(location)) {
+      return;
+    }
+
     BlockMenu menu = BlockStorage.getInventory(location);
+    if (menu == null || !menu.hasViewer()) {
+      return;
+    }
+
+    updateMenu(menu, location, generated);
+  }
+
+  private void updateMenu(BlockMenu menu, Location location, int generated) {
     if (menu == null || !menu.hasViewer()) {
       return;
     }
@@ -211,19 +225,27 @@ public final class EnergyGenerator extends MenuBlock implements EnergyNetProvide
   }
 
   private int getStoredValue(Config data, String key) {
-    if (data == null || !data.contains(key)) {
-      return 0;
-    }
-
-    String rawValue = data.getString(key);
-    if (rawValue == null) {
+    if (!hasStoredValue(data, key)) {
       return 0;
     }
 
     try {
-      return Integer.parseInt(rawValue);
-    } catch (NumberFormatException ignored) {
+      String rawValue = data.getString(key);
+      return rawValue == null ? 0 : Integer.parseInt(rawValue);
+    } catch (NullPointerException | NumberFormatException ignored) {
       return 0;
+    }
+  }
+
+  private boolean hasStoredValue(Config data, String key) {
+    if (data == null) {
+      return false;
+    }
+
+    try {
+      return data.contains(key);
+    } catch (NullPointerException ignored) {
+      return false;
     }
   }
 
@@ -304,31 +326,41 @@ public final class EnergyGenerator extends MenuBlock implements EnergyNetProvide
             + " environmentActive=false");
   }
 
-  private boolean distributeEnvironmentalCharge(Location source, int requestedCharge) {
+  private boolean queueEnvironmentalCharge(Location source, int requestedCharge) {
     EnergyNet network = EnergyNet.getNetworkFromLocation(source);
     if (network == null) {
       return false;
     }
 
-    List<Location> activeGenerators = getActiveEnvironmentalGenerators(network);
-    if (activeGenerators.isEmpty()) {
-      return false;
-    }
-
     String distributionKey = getDistributionKey(network);
     PendingDistribution pending = PENDING_DISTRIBUTIONS.computeIfAbsent(distributionKey, key -> {
-      scheduleDistributionReset(key);
-      return new PendingDistribution();
+      PendingDistribution distribution = new PendingDistribution(network);
+      scheduleDistributionFlush(key, distribution);
+      return distribution;
     });
 
     if (requestedCharge > 0) {
-      pending.totalCharge = Math.min(activeGenerators.size() * getCapacity(), pending.totalCharge + requestedCharge);
+      pending.totalCharge = Math.min(Integer.MAX_VALUE, pending.totalCharge + (long) requestedCharge);
     }
 
-    int remainingCharge = pending.totalCharge;
+    logQueuedCharge(source, requestedCharge, pending.totalCharge);
+    return true;
+  }
+
+  private void flushEnvironmentalCharge(String distributionKey, PendingDistribution pending) {
+    PENDING_DISTRIBUTIONS.remove(distributionKey);
+
+    List<Location> activeGenerators = getActiveEnvironmentalGenerators(pending.network);
+    if (activeGenerators.isEmpty()) {
+      return;
+    }
+
+    long totalCapacity = Math.min(Integer.MAX_VALUE, activeGenerators.size() * (long) getCapacity());
+    long remainingCharge = Math.min(totalCapacity, pending.totalCharge);
     int remainingGenerators = activeGenerators.size();
+
     for (Location target : activeGenerators) {
-      int assignedCharge = remainingGenerators > 0
+      long assignedCharge = remainingGenerators > 0
           ? Math.min(getCapacity(), remainingCharge / remainingGenerators)
           : 0;
 
@@ -336,7 +368,7 @@ public final class EnergyGenerator extends MenuBlock implements EnergyNetProvide
         assignedCharge = Math.min(getCapacity(), assignedCharge + 1);
       }
 
-      applyStoredCharge(target, assignedCharge);
+      applyStoredCharge(target, (int) assignedCharge);
       updateMenu(target, BlockStorage.getLocationInfo(target),
           getStoredValue(BlockStorage.getLocationInfo(target), GENERATION_KEY));
 
@@ -344,22 +376,44 @@ public final class EnergyGenerator extends MenuBlock implements EnergyNetProvide
       remainingGenerators--;
     }
 
-    logDistributedCharge(source, requestedCharge, activeGenerators);
-    return true;
+    logDistributedCharge(distributionKey, pending.totalCharge, activeGenerators);
   }
 
   private void applyStoredCharge(Location location, int charge) {
-    BlockStorage.addBlockInfo(location, ENERGY_CHARGE_KEY, String.valueOf(charge), false);
-    BlockStorage.addBlockInfo(location, LEGACY_BUFFER_CHARGE_KEY, String.valueOf(charge), false);
+    Config data = BlockStorage.getLocationInfo(location);
+
+    if (getStoredValue(data, ENERGY_CHARGE_KEY) != charge) {
+      BlockStorage.addBlockInfo(location, ENERGY_CHARGE_KEY, String.valueOf(charge), false);
+    }
+
+    if (hasStoredValue(data, LEGACY_BUFFER_CHARGE_KEY) && getStoredValue(data, LEGACY_BUFFER_CHARGE_KEY) != charge) {
+      BlockStorage.addBlockInfo(location, LEGACY_BUFFER_CHARGE_KEY, String.valueOf(charge), false);
+    }
   }
 
-  private void logDistributedCharge(Location source, int requestedCharge, List<Location> activeGenerators) {
+  private void logQueuedCharge(Location source, int requestedCharge, long queuedCharge) {
     if (!Supreme.getSupremeOptions().isDebugGenerators()) {
       return;
     }
 
     String sourceKey = getLocationKey(source);
-    if (!shouldLog("distributedCharge:" + sourceKey)) {
+    if (!shouldLog("queuedCharge:" + sourceKey)) {
+      return;
+    }
+
+    Supreme.inst().log(Level.INFO,
+        "[GeneratorDebug] queuedCharge id=" + getId()
+            + " source=" + source.getWorld().getName() + "@" + source.getBlockX() + "," + source.getBlockY() + "," + source.getBlockZ()
+            + " requested=" + requestedCharge
+            + " queued=" + queuedCharge);
+  }
+
+  private void logDistributedCharge(String distributionKey, long queuedCharge, List<Location> activeGenerators) {
+    if (!Supreme.getSupremeOptions().isDebugGenerators()) {
+      return;
+    }
+
+    if (!shouldLog("distributedCharge:" + distributionKey)) {
       return;
     }
 
@@ -374,8 +428,8 @@ public final class EnergyGenerator extends MenuBlock implements EnergyNetProvide
 
     Supreme.inst().log(Level.INFO,
         "[GeneratorDebug] distributedCharge id=" + getId()
-            + " source=" + source.getWorld().getName() + "@" + source.getBlockX() + "," + source.getBlockY() + "," + source.getBlockZ()
-            + " requested=" + requestedCharge
+            + " distribution=" + distributionKey
+            + " queued=" + queuedCharge
             + " targets=" + targets);
   }
 
@@ -440,12 +494,17 @@ public final class EnergyGenerator extends MenuBlock implements EnergyNetProvide
     return activeGenerators;
   }
 
-  private void scheduleDistributionReset(String distributionKey) {
-    Bukkit.getScheduler().runTaskLater(Supreme.inst(), () -> PENDING_DISTRIBUTIONS.remove(distributionKey), 1L);
+  private void scheduleDistributionFlush(String distributionKey, PendingDistribution pending) {
+    Bukkit.getScheduler().runTaskLater(Supreme.inst(), () -> flushEnvironmentalCharge(distributionKey, pending), 1L);
   }
 
   private static final class PendingDistribution {
-    private int totalCharge;
+    private final EnergyNet network;
+    private long totalCharge;
+
+    private PendingDistribution(EnergyNet network) {
+      this.network = network;
+    }
   }
 
 
